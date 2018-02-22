@@ -1,0 +1,147 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Dev FMG API - root stack
+Parameters:
+  ProjectName:
+    Type: String
+    Default: fusion
+  Environment:
+    Type: String
+    Default: uat
+  InternalDomainName:
+    Type: String
+    Default: vmh.internal
+  SshKeyName:
+    Type: String
+    Default: tvsa-infrastructure
+  TrustedNetworkCidr:
+    Type: String
+    Default: 0.0.0.0/0
+  VpcCidr:
+    Type: String
+    Default: 10.0.0.0/16
+  ElasticsearchDomainName:
+    Type: String
+    Default: elastic-search
+  LoggingDomainName:
+    Type: String
+    Default: logging-domain
+  LogstashInstanceType:
+    Type: String
+    Default: t2.medium
+  LogstashVolumeSize:
+    Type: Number
+    Default: 32
+  ElasticsearchInstanceCount:
+    Type: Number
+    Default: 2
+  ElasticsearchDedicatedMasterCount:
+    Type: Number
+    Default: 3
+  LogstashNodesMinSize:
+    Type: Number
+    Default: 2
+  LogstashNodesMaxSize:
+    Type: Number
+    Default: 4
+  AppCertificateArn:
+    Type: String
+    Default: arn:aws:acm:us-east-1:528662748254:certificate/5d1cebc1-0e18-4853-9468-aeb52b8ca193
+  EC2InstanceType:
+    Type: String
+    Default: t2.medium
+
+Resources:
+  StackNotificationSnsTopic:
+    Type: "AWS::SNS::Topic"
+
+  NetworkStack:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      NotificationARNs:
+        - !Ref StackNotificationSnsTopic
+      Parameters:
+        TrustedNetworkCidr: !Ref TrustedNetworkCidr
+        SshKeyName: !Ref SshKeyName
+        VpcCidr: !Ref VpcCidr
+        ProjectName: !Ref ProjectName
+        Enviroment: !Ref Environment
+      Tags:
+        - Key: RootStack
+          Value: !Ref AWS::StackName
+      TemplateURL: !Sub "https://s3.amazonaws.com/cf-tvsa/${ProjectName}/${Environment}/cloudformation/network.yaml"
+
+  EC2RolesAndProfilesStack:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      NotificationARNs:
+        - !Ref StackNotificationSnsTopic
+      TemplateURL: !Sub "https://s3.amazonaws.com/cf-tvsa/${ProjectName}/${Environment}/cloudformation/ec2-roles-and-profiles.yaml"
+
+  ECSClustersStack:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Enviroment: !Ref Environment
+      NotificationARNs:
+        - !Ref StackNotificationSnsTopic
+      TemplateURL: !Sub "https://s3.amazonaws.com/cf-tvsa/${ProjectName}/${Environment}/cloudformation/ecs-clusters.yaml"
+
+  IAMStack:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      NotificationARNs:
+        - !Ref StackNotificationSnsTopic
+      TemplateURL: !Sub "https://s3.amazonaws.com/cf-tvsa/${ProjectName}/${Environment}/cloudformation/iam-user-data.yaml"
+
+  ECRStack:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      NotificationARNs:
+        - !Ref StackNotificationSnsTopic
+      Parameters:
+        UserStackName: !Select [1, !Split ["/", !Ref IAMStack]]
+        ProjectName: !Ref ProjectName
+        Enviroment: !Ref Environment
+      TemplateURL: !Sub "https://s3.amazonaws.com/cf-tvsa/${ProjectName}/${Environment}/cloudformation/ECR.yaml"
+    DependsOn: IAMStack
+#
+#  FEApp:
+#    Type: "AWS::CloudFormation::Stack"
+#    Properties:
+#      NotificationARNs:
+#        - !Ref StackNotificationSnsTopic
+#      Parameters:
+#        ProjectName: !Ref ProjectName
+#        Enviroment: !Ref Environment
+#        AppName: FEService
+#        NetworkStackName: !Select [1, !Split ["/", !Ref NetworkStack]]
+#        ECSClustersStackName: !Select [1, !Split ["/", !Ref ECSClustersStack]]
+#        ECRStackName: !Select [1, !Split ["/", !Ref ECRStack]]
+#        AppCertificateArn: !Ref AppCertificateArn
+#        AppInstanceMinCount: 1
+#        AppInstanceMaxCount: 2
+#        AppTaskMinCount: 1
+#        AppECR: FEEcr
+#        InstanceType: !Ref EC2InstanceType
+#        EC2RolesAndProfilesStackName: !Select [1, !Split ["/", !Ref EC2RolesAndProfilesStack]]
+#        HealthyPath: /
+#      TemplateURL: !Sub "https://s3.amazonaws.com/cf-tvsa/${ProjectName}/${Environment}/cloudformation/app.yaml"
+#    DependsOn:
+#      - NetworkStack
+#      - ECSClustersStack
+#      - EC2RolesAndProfilesStack
+#      - ECRStack
+# NO UTILIZAMOS DNS de AWS
+#  Route53Stack:
+#    Type: "AWS::CloudFormation::Stack"
+#    Properties:
+#      NotificationARNs:
+#        - !Ref StackNotificationSnsTopic
+#      Parameters:
+#        InternalDomainName: !Ref InternalDomainName
+#        Enviroment: !Ref Environment
+#        NetworkStackName: !Select [1, !Split ["/", !Ref NetworkStack]]
+#      TemplateURL: !Sub "https://s3.amazonaws.com/cf-tvsa/${ProjectName}/${Environment}/cloudformation/route53.yaml"
+#    DependsOn:
+#      - NetworkStack
