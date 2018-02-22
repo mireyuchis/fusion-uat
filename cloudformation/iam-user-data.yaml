@@ -1,0 +1,25 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+
+
+###############################################################################
+#AWS IAM Groups for adding users to. Currently only the admin group is defined.
+###############################################################################
+  ECRUser:
+    Type: "AWS::IAM::User"
+    Properties:
+      LoginProfile:
+        Password : "GoodForMeToP00pon!"
+        PasswordResetRequired : "True"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AdministratorAccess"
+      Path: "/"
+      UserName: !Sub "${AWS::StackName}-ECRUserArn"
+
+Outputs:
+
+  ECRUser:
+    Description: The userARN for ECRUser
+    Value: !GetAtt ECRUser.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-ECRUserArn"

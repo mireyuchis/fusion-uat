@@ -1,0 +1,113 @@
+
+AWSTemplateFormatVersion: '2010-09-09'
+
+Resources:
+#EC2 ECS CLUSTER SYSTEM ROLE
+  VmhECSClusterEC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [ec2.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+      - PolicyName: ecs-service
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: ['ecs:CreateCluster', 'ecs:DeregisterContainerInstance', 'ecs:DiscoverPollEndpoint',
+              'ecs:Poll', 'ecs:RegisterContainerInstance', 'ecs:StartTelemetrySession',
+              'ecs:Submit*', 'logs:CreateLogStream', 'logs:PutLogEvents',
+              # AmazonEC2ContainerRegistryReadOnly
+              'ecr:GetAuthorizationToken',
+              'ecr:BatchCheckLayerAvailability',
+              'ecr:GetDownloadUrlForLayer',
+              'ecr:GetRepositoryPolicy',
+              'ecr:DescribeRepositories',
+              'ecr:ListImages',
+              'ecr:DescribeImages',
+              'ecr:BatchGetImage',
+              ]
+            Resource: '*'
+
+#AUTO ECS CLUSTER SCALING ROLE
+  VmhECSClusterAutoscalingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [application-autoscaling.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+      - PolicyName: service-autoscaling
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: ['application-autoscaling:*', 'cloudwatch:DescribeAlarms', 'cloudwatch:PutMetricAlarm',
+              'ecs:DescribeServices', 'ecs:UpdateService']
+            Resource: '*'
+
+#CLUSTER SERVICE ROLE
+  VmhECSServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [ecs.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+      - PolicyName: ecs-service
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: ['elasticloadbalancing:DeregisterInstancesFromLoadBalancer', 'elasticloadbalancing:DeregisterTargets',
+              'elasticloadbalancing:Describe*', 'elasticloadbalancing:RegisterInstancesWithLoadBalancer',
+              'elasticloadbalancing:RegisterTargets', 'ec2:Describe*', 'ec2:AuthorizeSecurityGroupIngress']
+            Resource: '*'
+
+#EC2 ECS CLUSTER INSTANCE PROFILES
+  VmhECSCLusterEC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles: [!Ref 'VmhECSClusterEC2Role']
+
+Outputs:
+  VmhECSClusterEC2Role:
+    Value: !Ref VmhECSClusterEC2Role
+    Export:
+      Name: !Sub "${AWS::StackName}-VmhECSClusterEC2Role"
+
+  VmhECSClusterEC2RoleARN:
+    Value: !GetAtt VmhECSClusterEC2Role.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-VmhECSClusterEC2RoleArn"
+
+  VmhECSClusterAutoscalingRole:
+    Value: !Ref VmhECSClusterAutoscalingRole
+    Export:
+      Name: !Sub "${AWS::StackName}-VmhECSClusterAutoscalingRole"
+
+  VmhECSClusterEC2InstanceProfile:
+    Value:  !Ref VmhECSCLusterEC2InstanceProfile
+    Export:
+      Name: !Sub "${AWS::StackName}-VmhECSClusterEC2InstanceProfile"
+
+  VmhECSServiceRole:
+    Value: !Ref VmhECSServiceRole
+    Export:
+      Name: !Sub "${AWS::StackName}-VmhECSServiceRole"
+
+  VmhECSServiceRoleARN:
+    Value: !GetAtt VmhECSServiceRole.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-VmhECSServiceRoleArn"

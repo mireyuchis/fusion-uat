@@ -1,0 +1,22 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  InternalDomainName:
+    Type: String
+  NetworkStackName:
+    Type: String
+  Enviroment:
+    Type: String
+
+Resources:
+
+  InternalHostedZone:
+    Type: "AWS::Route53::HostedZone"
+    Properties:
+      Name: !Ref InternalDomainName
+      VPCs:
+        -
+          VPCId:
+            Fn::ImportValue:
+              !Sub "${NetworkStackName}-${Enviroment}-NetworkVpcId"
+          VPCRegion:
+            Ref: "AWS::Region"

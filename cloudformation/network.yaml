@@ -1,0 +1,1094 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  TrustedNetworkCidr:
+    Type: String
+  VpcCidr:
+    Type: String
+  SshKeyName:
+    Type: String
+  ProjectName:
+    Type: String
+  Enviroment:
+    Type: String
+
+Resources:
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      InstanceTenancy: default
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      Tags:
+      - Key: Name
+        Value: !Sub '${ProjectName}-${Enviroment}-vpc'
+
+#  PrivateASubnet:
+#    Type: AWS::EC2::Subnet
+#    Properties:
+#      CidrBlock: !Join [".",[!Select [0, !Split [".", !Ref VpcCidr]], !Select [1, !Split [".", !Ref VpcCidr]], "0.0/24" ] ]
+#      AvailabilityZone:
+#        Fn::Select:
+#          - 0
+#          - Fn::GetAZs: !Ref AWS::Region
+#      VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: !Sub '${ProjectName}-${Enviroment}-private-a'
+
+#  PrivateBSubnet:
+#    Type: AWS::EC2::Subnet
+#    Properties:
+#      CidrBlock: !Join [".",[!Select [0, !Split [".", !Ref VpcCidr]], !Select [1, !Split [".", !Ref VpcCidr]], "1.0/24" ] ]
+#      AvailabilityZone:
+#        Fn::Select:
+#          - 1
+#          - Fn::GetAZs: !Ref AWS::Region
+#      VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: !Sub '${ProjectName}-${Enviroment}-private-b'
+
+#  PrivateCSubnet:
+#    Type: AWS::EC2::Subnet
+#    Properties:
+#      CidrBlock: !Join [".",[!Select [0, !Split [".", !Ref VpcCidr]], !Select [1, !Split [".", !Ref VpcCidr]], "2.0/24" ] ]
+#      AvailabilityZone:
+#        Fn::Select:
+#          - 2
+#          - Fn::GetAZs: !Ref AWS::Region
+#      VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: !Sub '${ProjectName}-private-c'
+
+  PublicASubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: !Join [".",[!Select [0, !Split [".", !Ref VpcCidr]], !Select [1, !Split [".", !Ref VpcCidr]], "10.0/24" ] ]
+      AvailabilityZone:
+        Fn::Select:
+          - 0
+          - Fn::GetAZs: !Ref AWS::Region
+      VpcId:
+        Ref: Vpc
+      Tags:
+      - Key: Name
+        Value: !Sub '${ProjectName}-${Enviroment}-public-a'
+
+  PublicBSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: !Join [".",[!Select [0, !Split [".", !Ref VpcCidr]], !Select [1, !Split [".", !Ref VpcCidr]], "11.0/24" ] ]
+      AvailabilityZone:
+        Fn::Select:
+          - 1
+          - Fn::GetAZs: !Ref AWS::Region
+      VpcId:
+        Ref: Vpc
+      Tags:
+      - Key: Name
+        Value: !Sub '${ProjectName}-${Enviroment}-public-b'
+
+#  PublicCSubnet:
+#    Type: AWS::EC2::Subnet
+#    Properties:
+#      CidrBlock: !Join [".",[!Select [0, !Split [".", !Ref VpcCidr]], !Select [1, !Split [".", !Ref VpcCidr]], "12.0/24" ] ]
+#      AvailabilityZone:
+#        Fn::Select:
+#          - 2
+#          - Fn::GetAZs: !Ref AWS::Region
+#      VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: !Sub '${ProjectName}-public-c'
+
+#  UtilityASubnet:
+#    Type: AWS::EC2::Subnet
+#    Properties:
+#      CidrBlock: !Join [".",[!Select [0, !Split [".", !Ref VpcCidr]], !Select [1, !Split [".", !Ref VpcCidr]], "90.0/24" ] ]
+#      AvailabilityZone:
+#        Fn::Select:
+#          - 0
+#          - Fn::GetAZs: !Ref AWS::Region
+#      VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: !Sub '${ProjectName}-${Enviroment}-utility-a'
+
+#  UtilityBSubnet:
+#    Type: AWS::EC2::Subnet
+#    Properties:
+#      CidrBlock: !Join [".",[!Select [0, !Split [".", !Ref VpcCidr]], !Select [1, !Split [".", !Ref VpcCidr]], "91.0/24" ] ]
+#      AvailabilityZone:
+#        Fn::Select:
+#          - 1
+#          - Fn::GetAZs: !Ref AWS::Region
+#      VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: !Sub '${ProjectName}-${Enviroment}-utility-b'
+
+#  UtilityCSubnet:
+#    Type: AWS::EC2::Subnet
+#    Properties:
+#      CidrBlock: !Join [".",[!Select [0, !Split [".", !Ref VpcCidr]], !Select [1, !Split [".", !Ref VpcCidr]], "92.0/24" ] ]
+#      AvailabilityZone:
+#        Fn::Select:
+#          - 2
+#          - Fn::GetAZs: !Ref AWS::Region
+#      VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: !Sub '${ProjectName}-${Enviroment}-utility-c'
+
+#  DatabaseASubnet:
+#    Type: AWS::EC2::Subnet
+#    Properties:
+#      CidrBlock: !Join [".",[!Select [0, !Split [".", !Ref VpcCidr]], !Select [1, !Split [".", !Ref VpcCidr]], "200.0/24" ] ]
+#      AvailabilityZone:
+#        Fn::Select:
+#          - 0
+#          - Fn::GetAZs: !Ref AWS::Region
+#      VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: !Sub '${ProjectName}-database-a'
+#  DatabaseBSubnet:
+#    Type: AWS::EC2::Subnet
+#    Properties:
+#      CidrBlock: !Join [".",[!Select [0, !Split [".", !Ref VpcCidr]], !Select [1, !Split [".", !Ref VpcCidr]], "201.0/24" ] ]
+#      AvailabilityZone:
+#        Fn::Select:
+#          - 1
+#          - Fn::GetAZs: !Ref AWS::Region
+#     VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: !Sub '${ProjectName}-database-b'
+#  DatabaseCSubnet:
+#    Type: AWS::EC2::Subnet
+#    Properties:
+#      CidrBlock: !Join [".",[!Select [0, !Split [".", !Ref VpcCidr]], !Select [1, !Split [".", !Ref VpcCidr]], "202.0/24" ] ]
+#      AvailabilityZone:
+#        Fn::Select:
+#          - 2
+#          - Fn::GetAZs: !Ref AWS::Region
+#      VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: !Sub '${ProjectName}-database-c'
+
+  VpcIgw:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: Name
+        Value: VpcIgw
+
+  NatGwElasticIp01:
+    Type: "AWS::EC2::EIP"
+    Properties:
+      Domain: vpc
+    DependsOn: IgwVpcAssociation
+
+  NatGwElasticIp02:
+    Type: "AWS::EC2::EIP"
+    Properties:
+      Domain: vpc
+    DependsOn: IgwVpcAssociation
+
+#  NatGwElasticIp03:
+#    Type: "AWS::EC2::EIP"
+#    Properties:
+#      Domain: vpc
+#    DependsOn: IgwVpcAssociation
+
+#  NatGwElasticIp04:
+#    Type: "AWS::EC2::EIP"
+#    Properties:
+#      Domain: vpc
+#    DependsOn: IgwVpcAssociation
+
+  NatGwPublicA:
+    Type: AWS::EC2::NatGateway
+    Properties:
+       AllocationId:
+        Fn::GetAtt:
+          - NatGwElasticIp01
+          - AllocationId
+       SubnetId:
+         Ref: PublicASubnet
+
+  NatGwPublicB:
+    Type: AWS::EC2::NatGateway
+    Properties:
+       AllocationId:
+        Fn::GetAtt:
+          - NatGwElasticIp02
+          - AllocationId
+       SubnetId:
+         Ref: PublicBSubnet
+
+#  DhcpOptions:
+#    Type: AWS::EC2::DHCPOptions
+#    Properties:
+#      DomainName: "ec2.internal"
+#      DomainNameServers:
+#      - AmazonProvidedDNS
+
+  DefaultAcl:
+    Type: AWS::EC2::NetworkAcl
+    Properties:
+      VpcId:
+        Ref: Vpc
+      Tags:
+      - Key: Name
+        Value: default
+
+  PublicAcl:
+    Type: AWS::EC2::NetworkAcl
+    Properties:
+      VpcId:
+        Ref: Vpc
+      Tags:
+      - Key: Name
+        Value: public
+
+#  DatabaseAcl:
+#    Type: AWS::EC2::NetworkAcl
+#    Properties:
+#      VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: db
+
+#  PrivateAcl:
+#    Type: AWS::EC2::NetworkAcl
+#    Properties:
+#      VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: private
+
+#  UtilityAcl:
+#    Type: AWS::EC2::NetworkAcl
+#    Properties:
+#      VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: util
+
+#  PrivateAAclAssociation:
+#    Type: AWS::EC2::SubnetNetworkAclAssociation
+#    Properties:
+#      NetworkAclId:
+#        Ref: PrivateAcl
+#      SubnetId:
+#        Ref: PrivateASubnet
+
+#  PrivateBAclAssociation:
+#    Type: AWS::EC2::SubnetNetworkAclAssociation
+#    Properties:
+#      NetworkAclId:
+#        Ref: PrivateAcl
+#      SubnetId:
+#        Ref: PrivateBSubnet
+
+#  PrivateCAclAssociation:
+#    Type: AWS::EC2::SubnetNetworkAclAssociation
+#    Properties:
+#      NetworkAclId:
+#        Ref: PrivateAcl
+#      SubnetId:
+#        Ref: PrivateCSubnet
+
+  PublicAAclAssociation:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      NetworkAclId:
+        Ref: PublicAcl
+      SubnetId:
+        Ref: PublicASubnet
+
+  PublicBAclAssociation:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      NetworkAclId:
+        Ref: PublicAcl
+      SubnetId:
+        Ref: PublicBSubnet
+
+#  PublicCAclAssociation:
+#    Type: AWS::EC2::SubnetNetworkAclAssociation
+#    Properties:
+#      NetworkAclId:
+#        Ref: PublicAcl
+#      SubnetId:
+#        Ref: PublicCSubnet
+
+#  UtilityAAclAssociation:
+#    Type: AWS::EC2::SubnetNetworkAclAssociation
+#    Properties:
+#      NetworkAclId:
+#        Ref: UtilityAcl
+#      SubnetId:
+#        Ref: UtilityASubnet
+
+#  UtilityBAclAssociation:
+#    Type: AWS::EC2::SubnetNetworkAclAssociation
+#    Properties:
+#      NetworkAclId:
+#        Ref: UtilityAcl
+#      SubnetId:
+#        Ref: UtilityBSubnet
+
+#  UtilityCAclAssociation:
+#    Type: AWS::EC2::SubnetNetworkAclAssociation
+#    Properties:
+#      NetworkAclId:
+#        Ref: UtilityAcl
+#      SubnetId:
+#        Ref: UtilityCSubnet
+
+#  DatabaseAAclAssociation:
+#    Type: AWS::EC2::SubnetNetworkAclAssociation
+#    Properties:
+#      NetworkAclId:
+#        Ref: DatabaseAcl
+#      SubnetId:
+#        Ref: DatabaseASubnet
+
+#  DatabaseBAclAssociation:
+#    Type: AWS::EC2::SubnetNetworkAclAssociation
+#    Properties:
+#      NetworkAclId:
+#        Ref: DatabaseAcl
+#      SubnetId:
+#        Ref: DatabaseBSubnet
+
+#  DatabaseCAclAssociation:
+#    Type: AWS::EC2::SubnetNetworkAclAssociation
+#    Properties:
+#      NetworkAclId:
+#        Ref: DatabaseAcl
+#      SubnetId:
+#        Ref: DatabaseCSubnet
+
+  PublicAclRuleEgress001:
+    Type: "AWS::EC2::NetworkAclEntry"
+    Properties:
+      CidrBlock: 0.0.0.0/0
+      Egress: true
+      NetworkAclId:
+        Ref: PublicAcl
+      Protocol: -1
+      RuleAction : allow
+      RuleNumber : 1
+
+  PublicAclRuleIngress001:
+    Type: "AWS::EC2::NetworkAclEntry"
+    Properties:
+      CidrBlock: 0.0.0.0/0
+      Egress: false
+      NetworkAclId:
+        Ref: PublicAcl
+      Protocol: -1
+      RuleAction : allow
+      RuleNumber : 1
+
+#  PrivateAclRuleEgress001:
+#    Type: "AWS::EC2::NetworkAclEntry"
+#    Properties:
+#      CidrBlock: 0.0.0.0/0
+#      Egress: true
+#      NetworkAclId:
+#        Ref: PrivateAcl
+#      Protocol: -1
+#      RuleAction : allow
+#      RuleNumber : 1
+
+#  PrivateAclRuleIngress001:
+#    Type: "AWS::EC2::NetworkAclEntry"
+#    Properties:
+#      CidrBlock: 0.0.0.0/0
+#      Egress: false
+#      NetworkAclId:
+#        Ref: PrivateAcl
+#      Protocol: -1
+#      RuleAction : allow
+#      RuleNumber : 1
+
+#  UtilityAclRuleEgress001:
+#    Type: "AWS::EC2::NetworkAclEntry"
+#    Properties:
+#      CidrBlock: 0.0.0.0/0
+#      Egress: true
+#      NetworkAclId:
+#        Ref: UtilityAcl
+#      Protocol: -1
+#      RuleAction : allow
+#      RuleNumber : 1
+
+#  UtilityAclRuleIngress001:
+#    Type: "AWS::EC2::NetworkAclEntry"
+#    Properties:
+#      CidrBlock: 0.0.0.0/0
+#      Egress: false
+#      NetworkAclId:
+#        Ref: UtilityAcl
+#      Protocol: -1
+#      RuleAction : allow
+#      RuleNumber : 1
+
+#  DatabaseAclRuleEgress001:
+#    Type: "AWS::EC2::NetworkAclEntry"
+#    Properties:
+#      CidrBlock: 0.0.0.0/0
+#      Egress: true
+#      NetworkAclId:
+#        Ref: DatabaseAcl
+#      Protocol: -1
+#      RuleAction : allow
+#      RuleNumber : 1
+
+#  DatabaseAclRuleIngress001:
+#    Type: "AWS::EC2::NetworkAclEntry"
+#    Properties:
+#      CidrBlock: 0.0.0.0/0
+#      Egress: false
+#      NetworkAclId:
+#        Ref: DatabaseAcl
+#      Protocol: -1
+#      RuleAction : allow
+#      RuleNumber : 1
+
+  DefaultAclRuleEgress001:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      CidrBlock: 0.0.0.0/0
+      Egress: 'true'
+      Protocol: '-1'
+      RuleAction: allow
+      RuleNumber: '100'
+      NetworkAclId:
+        Ref: DefaultAcl
+
+  DefaultAclRuleIngress001:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      CidrBlock: 0.0.0.0/0
+      Protocol: '-1'
+      RuleAction: allow
+      RuleNumber: '100'
+      NetworkAclId:
+        Ref: DefaultAcl
+
+#  PrivateARoutingTable:
+#    Type: AWS::EC2::RouteTable
+#    Properties:
+#      VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: !Sub '${ProjectName}-${Enviroment}-private'
+
+#  PrivateBRoutingTable:
+#    Type: AWS::EC2::RouteTable
+#    Properties:
+#      VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: !Sub '${ProjectName}-${Enviroment}-private'
+
+#  PrivateCRoutingTable:
+#    Type: AWS::EC2::RouteTable
+#    Properties:
+#      VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: !Sub '${ProjectName}-private'
+
+  PublicARoutingTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: Vpc
+      Tags:
+      - Key: Name
+        Value: !Sub '${ProjectName}-${Enviroment}-public'
+
+  PublicBRoutingTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: Vpc
+      Tags:
+      - Key: Name
+        Value: !Sub '${ProjectName}-${Enviroment}-public'
+
+#  PublicCRoutingTable:
+#    Type: AWS::EC2::RouteTable
+#    Properties:
+#      VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: !Sub '${ProjectName}-public'
+
+#  UtilityARoutingTable:
+#    Type: AWS::EC2::RouteTable
+#    Properties:
+#      VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: !Sub '${ProjectName}-${Enviroment}-util'
+
+#  UtilityBRoutingTable:
+#    Type: AWS::EC2::RouteTable
+#    Properties:
+#      VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: !Sub '${ProjectName}-${Enviroment}-util'
+
+#  UtilityCRoutingTable:
+#    Type: AWS::EC2::RouteTable
+#    Properties:
+#      VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: !Sub '${ProjectName}-${Enviroment}-util'
+
+  DefaultRoutingTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: Vpc
+      Tags:
+      - Key: Name
+        Value: !Sub '${ProjectName}-${Enviroment}-default'
+
+#  DatabaseRoutingTable:
+#    Type: AWS::EC2::RouteTable
+#    Properties:
+#      VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: !Sub '${ProjectName}-${Enviroment}-db'
+
+  IgwVpcAssociation:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId:
+        Ref: Vpc
+      InternetGatewayId:
+        Ref: VpcIgw
+
+#  PrivateARoutingSubnetAssociation:
+#    Type: AWS::EC2::SubnetRouteTableAssociation
+#    Properties:
+#      RouteTableId:
+#        Ref: PrivateARoutingTable
+#      SubnetId:
+#        Ref: PrivateASubnet
+
+#  PrivateBRoutingSubnetAssociation:
+#    Type: AWS::EC2::SubnetRouteTableAssociation
+#    Properties:
+#      RouteTableId:
+#        Ref: PrivateBRoutingTable
+#      SubnetId:
+#        Ref: PrivateBSubnet
+
+#  PrivateCRoutingSubnetAssociation:
+#    Type: AWS::EC2::SubnetRouteTableAssociation
+#    Properties:
+#      RouteTableId:
+#        Ref: PrivateCRoutingTable
+#      SubnetId:
+#        Ref: PrivateCSubnet
+
+  PublicARoutingSubnetAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: PublicARoutingTable
+      SubnetId:
+        Ref: PublicASubnet
+
+  PublicBRoutingSubnetAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: PublicBRoutingTable
+      SubnetId:
+        Ref: PublicBSubnet
+
+#  PublicCRoutingSubnetAssociation:
+#    Type: AWS::EC2::SubnetRouteTableAssociation
+#    Properties:
+#      RouteTableId:
+#        Ref: PublicCRoutingTable
+#      SubnetId:
+#        Ref: PublicCSubnet
+
+#  UtilityARoutingSubnetAssociation:
+#    Type: AWS::EC2::SubnetRouteTableAssociation
+#    Properties:
+#      RouteTableId:
+#        Ref: UtilityARoutingTable
+#      SubnetId:
+#        Ref: UtilityASubnet
+
+#  UtilityBRoutingSubnetAssociation:
+#    Type: AWS::EC2::SubnetRouteTableAssociation
+#    Properties:
+#      RouteTableId:
+#        Ref: UtilityBRoutingTable
+#      SubnetId:
+#        Ref: UtilityBSubnet
+
+#  UtilityCRoutingSubnetAssociation:
+#    Type: AWS::EC2::SubnetRouteTableAssociation
+#    Properties:
+#      RouteTableId:
+#        Ref: UtilityCRoutingTable
+#      SubnetId:
+#        Ref: UtilityCSubnet
+
+#  DatabaseARoutingSubnetAssociation:
+#    Type: AWS::EC2::SubnetRouteTableAssociation
+#    Properties:
+#      RouteTableId:
+#        Ref: DatabaseRoutingTable
+#      SubnetId:
+#        Ref: DatabaseASubnet
+
+#  DatabaseBRoutingSubnetAssociation:
+#    Type: AWS::EC2::SubnetRouteTableAssociation
+#    Properties:
+#      RouteTableId:
+#        Ref: DatabaseRoutingTable
+#      SubnetId:
+#        Ref: DatabaseBSubnet
+
+#  DatabaseCRoutingSubnetAssociation:
+#    Type: AWS::EC2::SubnetRouteTableAssociation
+#    Properties:
+#      RouteTableId:
+#        Ref: DatabaseRoutingTable
+#      SubnetId:
+#        Ref: DatabaseCSubnet
+
+  PublicARoutingTableRoute001:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId:
+        Ref: PublicARoutingTable
+      GatewayId:
+        Ref: VpcIgw
+    DependsOn: IgwVpcAssociation
+
+  PublicBRoutingTableRoute001:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId:
+        Ref: PublicBRoutingTable
+      GatewayId:
+        Ref: VpcIgw
+    DependsOn: IgwVpcAssociation
+
+  DefaultRoutingTableRoute001:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId:
+        Ref: DefaultRoutingTable
+      GatewayId:
+        Ref: VpcIgw
+    DependsOn: IgwVpcAssociation
+
+#  UtilityARoutingTableRoute001:
+#    Type: AWS::EC2::Route
+#    Properties:
+#      DestinationCidrBlock: 0.0.0.0/0
+#      RouteTableId:
+#        Ref: UtilityARoutingTable
+#      NatGatewayId:
+#        Ref: NatGwPublicA
+#    DependsOn: IgwVpcAssociation
+
+#  UtilityBRoutingTableRoute001:
+#    Type: AWS::EC2::Route
+#    Properties:
+#      DestinationCidrBlock: 0.0.0.0/0
+#      RouteTableId:
+#        Ref: UtilityBRoutingTable
+#      NatGatewayId:
+#        Ref: NatGwPublicB
+#    DependsOn: IgwVpcAssociation
+
+#  PrivateARoutingTableRoute001:
+#    Type: AWS::EC2::Route
+#    Properties:
+#      DestinationCidrBlock: 0.0.0.0/0
+#      RouteTableId:
+#        Ref: PrivateARoutingTable
+#      NatGatewayId:
+#        Ref: NatGwPublicA
+#    DependsOn: IgwVpcAssociation
+
+#  PrivateBRoutingTableRoute001:
+#    Type: AWS::EC2::Route
+#    Properties:
+#      DestinationCidrBlock: 0.0.0.0/0
+#      RouteTableId:
+#        Ref: PrivateBRoutingTable
+#      NatGatewayId:
+#        Ref: NatGwPublicB
+#    DependsOn: IgwVpcAssociation
+
+  DhcpOptionsVpcAssociation:
+    Type: AWS::EC2::VPCDHCPOptionsAssociation
+    Properties:
+      VpcId:
+        Ref: Vpc
+      DhcpOptionsId:
+        Ref: DhcpOptions
+
+#  LogstashSecurityGroup:
+#    Type: AWS::EC2::SecurityGroup
+#    Properties:
+#      GroupDescription: Logstash security group
+#      VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: logstash
+# ============= SECURITY GROUP =================
+#  KibanaProxySecurityGroup:
+#    Properties:
+#      GroupDescription:
+#        Ref: AWS::StackName
+#      SecurityGroupIngress:
+#      - CidrIp: 0.0.0.0/0
+#        FromPort: 9200
+#        IpProtocol: tcp
+#        ToPort: 9200
+#      VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: !Sub '${ProjectName}-SC-kibana'
+#    Type: AWS::EC2::SecurityGroup
+
+#  ElbLogstashSecurityGroup:
+#    Properties:
+#      GroupDescription:
+#        Ref: AWS::StackName
+#      SecurityGroupIngress:
+#      - CidrIp: 0.0.0.0/0
+#        FromPort: 80
+#        IpProtocol: tcp
+#        ToPort: 80
+#      VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: !Sub '${ProjectName}-SC-elblogs'
+#    Type: AWS::EC2::SecurityGroup
+
+#  ElbKibanaProxySecurityGroup:
+#    Properties:
+#      GroupDescription:
+#        Ref: AWS::StackName
+#      SecurityGroupIngress:
+#      - CidrIp: 0.0.0.0/0
+#        FromPort: 80
+#        IpProtocol: tcp
+#        ToPort: 80
+#      VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: !Sub '${ProjectName}-SC-elbkibana'
+#    Type: AWS::EC2::SecurityGroup
+
+#  PGSQLSecurityGroup:
+#    Type: AWS::EC2::SecurityGroup
+#    Properties:
+#      GroupDescription: PGSQL cluster instance security group
+#      VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: !Sub '${ProjectName}-SC-PGSQL'
+
+#  PGSQLSecurityGroupIngress001:
+#    Type: AWS::EC2::SecurityGroupIngress
+#    Properties:
+#      GroupId:
+#        Ref: PGSQLSecurityGroup
+#      IpProtocol: '-1'
+#      CidrIp: 10.223.0.0/16
+
+#  PGSQLSecurityGroupEgress002:
+#    Type: AWS::EC2::SecurityGroupEgress
+#    Properties:
+#      GroupId:
+#        Ref: PGSQLSecurityGroup
+#      IpProtocol: '-1'
+#      CidrIp: 10.223.0.0/16
+
+#  ElasticsearchSecurityGroup:
+#    Type: AWS::EC2::SecurityGroup
+#    Properties:
+#      GroupDescription: Elasticsearch cluster instance security group
+#      VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: !Sub '${ProjectName}-${Enviroment}-SC-Elasticsearch'
+
+#  LogstashSecurityGroupEgress001:
+#    Type: AWS::EC2::SecurityGroupEgress
+#    Properties:
+#      GroupId:
+#        Ref: LogstashSecurityGroup
+#      IpProtocol: '-1'
+#      CidrIp: 0.0.0.0/0
+
+#  LogtashSecurityGroupIngress001:
+#    Type: "AWS::EC2::SecurityGroupIngress"
+#    Properties:
+#      CidrIp: 0.0.0.0/0
+#      FromPort: 6500
+#      GroupId: !Ref LogstashSecurityGroup
+#      IpProtocol: tcp
+#      ToPort: 6500
+
+#  JumpboxSecurityGroup:
+#    Type: AWS::EC2::SecurityGroup
+#    Properties:
+#      GroupDescription: Jumpbox/bastion host to reach the VPC
+#      VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: !Sub '${ProjectName}-SC-JumpBox'
+#  JumpboxSecurityGroupEgress001:
+#    Type: AWS::EC2::SecurityGroupEgress
+##    Properties:
+#      GroupId:
+#        Ref: JumpboxSecurityGroup
+#      IpProtocol: '-1'
+#      CidrIp:
+#        Ref: TrustedNetworkCidr
+#  JumpboxSecurityGroupEgress002:
+#    Type: AWS::EC2::SecurityGroupEgress
+#    Properties:
+#      GroupId:
+#        Ref: JumpboxSecurityGroup
+#      IpProtocol: '-1'
+#      CidrIp: 10.223.0.0/16
+#  JumpboxSecurityGroupEgress003:
+#    Type: AWS::EC2::SecurityGroupEgress
+#    Properties:
+#      GroupId:
+#        Ref: JumpboxSecurityGroup
+#      IpProtocol: '-1'
+#      CidrIp: 0.0.0.0/0
+#  JumpboxSecurityGroupIngress001:
+#    Type: AWS::EC2::SecurityGroupIngress
+#    Properties:
+#      GroupId:
+#        Ref: JumpboxSecurityGroup
+#      IpProtocol: '-1'
+#      CidrIp:
+#        Ref: TrustedNetworkCidr
+
+#  RdsS3SnapshotSecurityGroup:
+#    Type: AWS::EC2::SecurityGroup
+#    Properties:
+#      GroupDescription: RDS S3 Snapshot lambda function security group
+#      VpcId:
+#        Ref: Vpc
+#      Tags:
+#      - Key: Name
+#        Value: !Sub '${ProjectName}-${Enviroment}-SC-RdsS3Snapshot'
+  AppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ECS App Security Group, allows Target Groups to connect to Container
+      VpcId:
+        Ref: Vpc
+      Tags:
+      - Key: Name
+        Value: !Sub '${ProjectName}-${Enviroment}-application'
+
+  AppSecurityGroupHTTPinbound:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref 'AppSecurityGroup'
+      IpProtocol: tcp
+      FromPort: '80'
+      ToPort: '80'
+      CidrIp: 0.0.0.0/0
+
+  AppSecurityGroupHTTPSinbound:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref 'AppSecurityGroup'
+      IpProtocol: tcp
+      FromPort: '443'
+      ToPort: '443'
+      CidrIp: 0.0.0.0/0
+
+  AppSecurityGroupSSHinbound:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref 'AppSecurityGroup'
+      IpProtocol: tcp
+      FromPort: '22'
+      ToPort: '22'
+      CidrIp: 200.57.75.0/24
+
+  AppSecurityGroupSSHinbound:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref 'AppSecurityGroup'
+      IpProtocol: tcp
+      FromPort: '31000'
+      ToPort: '61000'
+      SourceSecurityGroupId: !Ref 'AppSecurityGroup'
+
+Outputs:
+  NetworkVpcId:
+    Description: The ID of the VPC
+    Value: !Ref Vpc
+    Export:
+      Name: !Sub "${AWS::StackName}-${Enviroment}-NetworkVpcId"
+
+  PublicASubnet:
+    Description: The ID of the PublicASubnet
+    Value: !Ref PublicASubnet
+    Export:
+      Name: !Sub "${AWS::StackName}-${Enviroment}-PublicASubnet"
+
+  PublicBSubnet:
+    Description: The ID of the PublicBSubnet
+    Value: !Ref PublicBSubnet
+    Export:
+      Name: !Sub "${AWS::StackName}-${Enviroment}-PublicBSubnet"
+
+#  PrivateASubnet:
+#    Description: The ID of the PrivateASubnet
+#    Value: !Ref PrivateASubnet
+#    Export:
+#      Name: !Sub "${AWS::StackName}-${Enviroment}-PrivateASubnet"
+
+#  PrivateBSubnet:
+#    Description: The ID of the PrivateBSubnet
+#    Value: !Ref PrivateBSubnet
+#    Export:
+#      Name: !Sub "${AWS::StackName}-${Enviroment}-PrivateBSubnet"
+
+#  DatabaseASubnet:
+#    Description: The ID of the DatabaseASubnet
+#    Value: !Ref DatabaseASubnet
+#    Export:
+#      Name: !Sub "${AWS::StackName}-${Enviroment}-DatabaseASubnet"
+
+#  DatabaseBSubnet:
+#    Description: The ID of the DatabaseBSubnet
+#    Value: !Ref DatabaseBSubnet
+#    Export:
+#      Name: !Sub "${AWS::StackName}-${Enviroment}-DatabaseBSubnet"
+
+#  UtilityASubnet:
+#    Description: The ID of the UtilityASubnet
+#    Value: !Ref UtilityASubnet
+#    Export:
+#      Name: !Sub "${AWS::StackName}-${Enviroment}-UtilityASubnet"
+
+#  UtilityBSubnet:
+#    Description: The ID of the UtilityBSubnet
+#    Value: !Ref UtilityBSubnet
+#    Export:
+#      Name: !Sub "${AWS::StackName}-${Enviroment}-UtilityBSubnet"
+
+#  PGSQLSecurityGroup:
+#    Description: The ID of the PGSQLSecurityGroup
+#    Value: !Ref PGSQLSecurityGroup
+#    Export:
+#      Name: !Sub "${AWS::StackName}-PGSQLSecurityGroup"
+
+#  JumpboxSecurityGroup:
+#    Description: Jumpbox Security Group
+#    Value: !Ref JumpboxSecurityGroup
+#    Export:
+#      Name: !Sub "${AWS::StackName}-JumpboxSecurityGroup"
+
+#  RdsS3SnapshotSecurityGroup:
+#    Description: RdsS3Snapshot Security Group
+#    Value: !Ref RdsS3SnapshotSecurityGroup
+#    Export:
+#      Name: !Sub "${AWS::StackName}-${Enviroment}-RdsS3SnapshotSecurityGroup"
+
+#  LogstashSecurityGroup:
+#    Description: The ID of the LogstashSecurityGroup
+#    Value: !Ref LogstashSecurityGroup
+#    Export:
+#      Name: !Sub "${AWS::StackName}-${Enviroment}-LogstashSecurityGroup"
+
+#  KibanaProxySecurityGroup:
+#    Description: The ID of the KibanaProxySecurityGroup
+#    Value: !Ref KibanaProxySecurityGroup
+#    Export:
+#      Name: !Sub "${AWS::StackName}-KibanaProxySecurityGroup"
+
+#  ElbLogstashSecurityGroup:
+#    Description: The ID of the ElbLogstashSecurityGroup
+#    Value: !Ref ElbLogstashSecurityGroup
+#    Export:
+#      Name: !Sub "${AWS::StackName}-${Enviroment}-ElbLogstashSecurityGroup"
+
+#  ElbKibanaProxySecurityGroup:
+#    Description: The ID of the ElbKibanaProxySecurityGroup
+#    Value: !Ref ElbKibanaProxySecurityGroup
+#    Export:
+#      Name: !Sub "${AWS::StackName}-ElbKibanaProxySecurityGroup"
+
+  AppSecurityGroup:
+    Description: App Security Group
+    Value: !Ref AppSecurityGroup
+    Export:
+      Name: !Sub "${AWS::StackName}-${Enviroment}-AppSecurityGroup"
+
+  SshKeyName:
+    Description: The name of the SSH key used in the infra
+    Value: !Ref SshKeyName
+    Export:
+      Name: !Sub "${AWS::StackName}-${Enviroment}-SshKeyName"

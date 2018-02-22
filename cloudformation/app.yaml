@@ -1,0 +1,284 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  EC2RolesAndProfilesStackName:
+    Type: String
+  ECSClustersStackName:
+    Type: String
+  NetworkStackName:
+    Type: String
+  ProjectName:
+    Type: String
+  Enviroment:
+    Type: String
+  HealthyPath:
+    Type: String
+  AppCertificateArn:
+    Type: String
+    Description: SSL Certificate (via Amazon Certificate Manager)
+  AppInstanceMinCount:
+    Type: Number
+  AppInstanceMaxCount:
+    Type: Number
+  AppTaskMinCount:
+    Type: Number
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t2.medium
+    AllowedValues: [t2.micro, t2.small, t2.medium, t2.large, m3.medium, m3.large,
+      m3.xlarge, m3.2xlarge, m4.large, m4.xlarge, m4.2xlarge, m4.4xlarge, m4.10xlarge,
+      c4.large, c4.xlarge, c4.2xlarge, c4.4xlarge, c4.8xlarge, c3.large, c3.xlarge,
+      c3.2xlarge, c3.4xlarge, c3.8xlarge, r3.large, r3.xlarge, r3.2xlarge, r3.4xlarge,
+      r3.8xlarge, i2.xlarge, i2.2xlarge, i2.4xlarge, i2.8xlarge]
+    ConstraintDescription: Please choose a valid instance type.
+  AppName:
+    Type: String
+  AppECR:
+    Type: String
+  ECRStackName:
+    Type: String
+Mappings:
+  AWSRegionToAMI:
+    us-east-1:
+      AMIID: ami-eca289fb
+    us-east-2:
+      AMIID: ami-446f3521
+    us-west-1:
+      AMIID: ami-9fadf8ff
+    us-west-2:
+      AMIID: ami-7abc111a
+    eu-west-1:
+      AMIID: ami-a1491ad2
+    eu-central-1:
+      AMIID: ami-54f5303b
+    ap-northeast-1:
+      AMIID: ami-9cd57ffd
+    ap-southeast-1:
+      AMIID: ami-a900a3ca
+    ap-southeast-2:
+      AMIID: ami-5781be34
+
+Resources:
+  VmhAppAutoscalingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [application-autoscaling.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+      - PolicyName: service-autoscaling
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: ['application-autoscaling:*', 'cloudwatch:DescribeAlarms', 'cloudwatch:PutMetricAlarm',
+              'ecs:DescribeServices', 'ecs:UpdateService']
+            Resource: '*'
+
+  VmhAppTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub '${ProjectName}-${Enviroment}-task-definition'
+      ContainerDefinitions:
+        -
+          Name: !Sub '${ProjectName}-${Enviroment}-container'
+          Cpu: "70"
+          Memory: "2048"
+          PortMappings:
+            -
+              ContainerPort: 8080
+          Essential: "true"
+          Image: {"Fn::Join": ["", [{"Ref":"AWS::AccountId"},
+                                   ".dkr.ecr.",
+                                     {"Ref": "AWS::Region"},
+                                    ".amazonaws.com/",
+                                    {"Fn::ImportValue" : {"Fn::Sub" : "${ECRStackName}-${AppECR}"}},
+                                    ":",
+                                    "latest"
+                                    ]]}
+# ============================ APPLICATION LOAD BALANCER ============================
+  VmhAppALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub '${ProjectName}-${Enviroment}'
+      Scheme: internet-facing
+      LoadBalancerAttributes:
+      - Key: idle_timeout.timeout_seconds
+        Value: '30'
+      Subnets:
+        - Fn::ImportValue:
+            !Sub "${NetworkStackName}-${Enviroment}-PublicASubnet"
+        - Fn::ImportValue:
+            !Sub "${NetworkStackName}-${Enviroment}-PublicBSubnet"
+      SecurityGroups:
+        - Fn::ImportValue:
+            !Sub "${NetworkStackName}-${Enviroment}-AppSecurityGroup"
+
+# ============================ ALB LISTENERS  & RULES  ============================
+  VmhAppALBHTTPListener03:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    DependsOn: VmhAppECSServiceRole
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref 'VmhAppTG'
+      LoadBalancerArn: !Ref 'VmhAppALB'
+      Port: '80'
+      Protocol: HTTP
+
+  VmhAppALBHTTPSListener03:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    DependsOn: VmhAppECSServiceRole
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref 'VmhAppTG'
+      LoadBalancerArn: !Ref 'VmhAppALB'
+      Port: '443'
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref 'AppCertificateArn'
+
+  VmhAppALBHTTPListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    DependsOn: VmhAppALBHTTPListener03
+    Properties:
+      Actions:
+      - Type: forward
+        TargetGroupArn: !Ref 'VmhAppTG'
+      Conditions:
+      - Field: path-pattern
+        Values: [/]
+      ListenerArn: !Ref 'VmhAppALBHTTPListener03'
+      Priority: 1
+
+  VmhAppALBHTTPSListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    DependsOn: VmhAppALBHTTPSListener03
+    Properties:
+      Actions:
+      - Type: forward
+        TargetGroupArn: !Ref 'VmhAppTG'
+      Conditions:
+      - Field: path-pattern
+        Values: [/]
+      ListenerArn: !Ref 'VmhAppALBHTTPSListener03'
+      Priority: 2
+
+# ====================== APPLICATION LOAD BALANCER TARGET GROUP  =======================
+  VmhAppTG:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn: VmhAppALB
+    Properties:
+      Name: !Sub '${ProjectName}-${Enviroment}'
+      HealthCheckIntervalSeconds: 30
+      HealthCheckPath: !Ref 'HealthyPath'
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      Port: 80
+      Protocol: HTTP
+      TargetGroupAttributes:
+        # Default '300' too long, slows down deploys. 2 minutes is more than enough.
+        - Key: deregistration_delay.timeout_seconds
+          Value: '120'
+      UnhealthyThresholdCount: 2
+      VpcId:
+        "Fn::ImportValue":
+            !Sub "${NetworkStackName}-${Enviroment}-NetworkVpcId"
+
+#ECS Container Auto Scaling Group
+  VmhAppAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier:
+         - Fn::ImportValue:
+            !Sub "${NetworkStackName}-${Enviroment}-PublicASubnet"
+         - Fn::ImportValue:
+            !Sub "${NetworkStackName}-${Enviroment}-PublicBSubnet"
+      LaunchConfigurationName: !Ref 'VmhAppContainerInstances'
+      MinSize: !Ref 'AppInstanceMinCount'
+      MaxSize: !Ref 'AppInstanceMaxCount'
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-${Enviroment}-instance'
+          PropagateAtLaunch: true
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT15M
+    UpdatePolicy:
+      AutoScalingReplacingUpdate:
+        WillReplace: 'true'
+
+  VmhAppAutoScalingPolicy:
+    Type: "AWS::AutoScaling::ScalingPolicy"
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref VmhAppAutoScalingGroup
+      Cooldown: 300
+      PolicyType: SimpleScaling
+      ScalingAdjustment: 1
+
+#Docker Container Instances
+  VmhAppContainerInstances:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: !FindInMap [AWSRegionToAMI, !Ref 'AWS::Region', AMIID]
+      AssociatePublicIpAddress: 'true'
+      KeyName: 'tvsa-infrastructure'
+      SecurityGroups:
+        - Fn::ImportValue:
+            !Sub "${NetworkStackName}-${Enviroment}-AppSecurityGroup"
+      InstanceType: !Ref 'InstanceType'
+      IamInstanceProfile:
+        "Fn::ImportValue":
+            !Sub "${EC2RolesAndProfilesStackName}-VmhECSClusterEC2InstanceProfile"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          echo ECS_CLUSTER=${ProjectName}-${Enviroment}-cluster >> /etc/ecs/ecs.config
+          yum install -y aws-cfn-bootstrap
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource VmhAppAutoScalingGroup --region ${AWS::Region}
+
+  VmhAppECSServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [ecs.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+      - PolicyName: ecs-service
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: ['elasticloadbalancing:DeregisterInstancesFromLoadBalancer', 'elasticloadbalancing:DeregisterTargets',
+              'elasticloadbalancing:Describe*', 'elasticloadbalancing:RegisterInstancesWithLoadBalancer',
+              'elasticloadbalancing:RegisterTargets', 'ec2:Describe*', 'ec2:AuthorizeSecurityGroupIngress']
+            Resource: '*'
+#================================================================================
+  Service:
+    Type: "AWS::ECS::Service"
+    Properties:
+        ServiceName: !Sub '${ProjectName}-${Enviroment}-service'
+        Role: arn:aws:iam::528662748254:role/ecsServiceRole
+        TaskDefinition: { "Ref" : "VmhAppTaskDefinition" }
+        DesiredCount: !Ref AppTaskMinCount
+        LoadBalancers:
+        - TargetGroupArn: { "Ref" : "VmhAppTG" }
+          ContainerPort: '8080'
+          ContainerName: !Sub '${ProjectName}-${Enviroment}-container'
+        Cluster: !Sub '${ProjectName}-${Enviroment}-cluster'
+
+Outputs:
+  VmhAppALB:
+    Description: The ALB for the application cluster
+    Value: !GetAtt VmhAppALB.DNSName
+    Export:
+      Name: !Sub "${AWS::StackName}-VmhAppALBAddress"

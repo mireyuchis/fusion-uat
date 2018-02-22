@@ -1,0 +1,20 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  ProjectName:
+    Type: String
+  Enviroment:
+    Type: String
+    
+Resources:
+
+  ClusterFE:
+    Type: "AWS::ECS::Cluster"
+    Properties:
+      ClusterName: !Sub '${ProjectName}-${Enviroment}-cluster'
+
+Outputs:
+
+  ClusterFE:
+    Value: !Ref ClusterFE
+    Export:
+      Name: !Sub '${ProjectName}-${Enviroment}-cluster'
